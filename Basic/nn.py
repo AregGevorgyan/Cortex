@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 class Layer: 
     def forward(self, inputs):
@@ -16,22 +17,21 @@ class Loss(Layer):
 
 class Dense(Layer):
     def __init__(self, input_size, output_size):
-        self.W = np.random.randn(output_size, input_size)
-        self.b = np.random.randn(output_size, 1)
+        self.W = np.random.randn(output_size, input_size) * 0.01
+        self.b = np.zeros((output_size, 1))
 
     def forward(self, inputs):
         self.inputs = inputs
         return np.dot(self.W, self.inputs) + self.b
 
-    def backward(self, output_gradient, learning_rate):
-        grad_inputs = np.dot(output_gradient, self.W.T)
-        grad_W = np.dot(output_gradient.T, self.inputs.T)
-        grad_b = np.sum(output_gradient, axis=1, keepdims=True)
+    def backward(self, grad_output):
+        grad_W = np.dot(grad_output, self.inputs.T)
+        grad_b = np.sum(grad_output, axis=1, keepdims=True)
+        grad_inputs = np.dot(self.W.T, grad_output)
+        return grad_inputs, [grad_W, grad_b]
 
-        self.W -= learning_rate * grad_W
-        self.b -= learning_rate * grad_b
-
-        return grad_inputs
+    def params(self):
+        return [self.W, self.b]
 
 # TODO: other types of layers
 class Convolutional(Layer):
@@ -66,9 +66,10 @@ class Recurrent(Layer):
 
 class ReLU(Layer):
     def forward(self, inputs):
+        self.inputs = inputs
         return np.maximum(0, inputs)
 
-    def backward(self, output_gradient, learning_rate):
+    def backward(self, output_gradient):
         return output_gradient * (self.inputs > 0)
     
 class Sigmoid(Layer):
@@ -96,10 +97,30 @@ class Softmax(Layer):
     def backward(self, output_gradient, learning_rate):
         jacobian = np.diagflat(self.outputs) - np.dot(self.outputs, self.outputs.T)
         return np.dot(jacobian, output_gradient)
+    
+class CrossEntropyLoss(Loss):
+    def forward(self, y_pred, y_true):
+        self.y_pred = y_pred
+        self.y_true = y_true
+        return -np.mean(np.sum(y_true * np.log(y_pred + 1e-9), axis=0))
+
+    def backward(self):
+        return - (self.y_true / (self.y_pred + 1e-9)) / self.y_true.shape[1]
+    
+class MSELoss(Loss):
+    def forward(self, y_pred, y_true):
+        self.y_pred = y_pred
+        self.y_true = y_true
+        return np.mean((y_true - y_pred) ** 2)
+
+    def backward(self, y_pred, y_true):
+        return 2 * (y_pred - y_true) / y_true.shape[0]
 
 class NeuralNetwork:
-    def __init__(self, layers):
+    def __init__(self, layers, loss, optimizer):
         self.layers = layers
+        self.loss = loss
+        self.optimizer = optimizer
 
     def predict(self, X):
         output = X
@@ -108,16 +129,26 @@ class NeuralNetwork:
         return output
 
     def fit(self, X, y, epochs, learning_rate):
-        for epoch in range(epochs):
-            output = self.predict(X)
-            loss = self.layers[-1].forward(output, y)
-            grad = self.layers[-1].backward(output, y)
-            for layer in reversed(self.layers[:-1]):
-                grad = layer.backward(grad, learning_rate)
+        pbar = tqdm(range(epochs), desc="Training", unit="epoch")
+        for epoch in pbar:
+            y_pred = self.predict(X)
+            loss = self.loss.forward(y_pred, y)
+            grad = self.loss.backward()
+            grads = []
+            params = []
+            for layer in reversed(self.layers):
+                if isinstance(layer, Dense):
+                    grad, layer_grads = layer.backward(grad)
+                    grads.extend(layer_grads)
+                    params.extend(layer.params())
+
+            self.optimizer.step(params, grads)
+            pbar.set_postfix({"loss": float(loss)})
 
 class Optimizer:
-    def __init__(self, learning_rate, optimizer, loss):
+    def __init__(self, learning_rate, optimizer):
         self.learning_rate = learning_rate
+        self.optimizer = optimizer
     
     def SGD(self, params, grads):
         for param, grad in zip(params, grads):
@@ -125,12 +156,6 @@ class Optimizer:
 
     def Adam(self, params, grads):
         pass
-
-    def MSE(self, y_true, y_pred):
-        return np.mean((y_true - y_pred) ** 2)
-    
-    def CrossEntropy(self, y_true, y_pred):
-        return -np.mean(np.sum(y_true * np.log(y_pred + 1e-9), axis=-1))
     
 class Utils:
     @staticmethod
