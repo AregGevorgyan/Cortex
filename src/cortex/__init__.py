@@ -3,8 +3,7 @@ __author__ = "Areg Gevorgyan"
 
 from .core import (
     NeuralNetwork,
-    Optimizer,
-    Utils
+    Optimizer
 )
 
 from .layers import (

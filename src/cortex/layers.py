@@ -14,17 +14,17 @@ class Layer:
 
 class Dense(Layer):
     def __init__(self, input_size, output_size):
-        self.W = np.random.randn(output_size, input_size) * 0.01
-        self.b = np.zeros((output_size, 1))
+        self.W = np.random.randn(input_size, output_size) * 0.01
+        self.b = np.zeros((1, output_size))
 
     def forward(self, inputs):
         self.inputs = inputs
-        return np.dot(self.W, self.inputs) + self.b
+        return np.dot(inputs, self.W) + self.b
 
     def backward(self, grad_output):
-        grad_W = np.dot(grad_output, self.inputs.T)
-        grad_b = np.sum(grad_output, axis=1, keepdims=True)
-        grad_inputs = np.dot(self.W.T, grad_output)
+        grad_W = np.dot(self.inputs.T, grad_output)
+        grad_b = np.sum(grad_output, axis=0, keepdims=True)
+        grad_inputs = np.dot(grad_output, self.W.T)
         return grad_inputs, [grad_W, grad_b]
 
     def params(self):
@@ -87,10 +87,9 @@ class Tanh(Layer):
     
 class Softmax(Layer):
     def forward(self, inputs):
-        exp_values = np.exp(inputs - np.max(inputs, axis=0, keepdims=True))
-        self.outputs = exp_values / np.sum(exp_values, axis=0, keepdims=True)
+        exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
+        self.outputs = exp_values / np.sum(exp_values, axis=1, keepdims=True)
         return self.outputs
 
-    def backward(self, output_gradient, learning_rate):
-        jacobian = np.diagflat(self.outputs) - np.dot(self.outputs, self.outputs.T)
-        return np.dot(jacobian, output_gradient)
+    def backward(self, grad_output):
+        return grad_output

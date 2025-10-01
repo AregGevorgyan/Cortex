@@ -3,9 +3,27 @@ Machine learning concepts implemented from scratch. I'm currently using numpy bu
 
 Let me know if you have any suggestions or if you found this useful.
 
-## TODO
-- Make more organized and add pyproject.toml
+## Cortex Explained
 
+I built this project during a 1 week informal hackathon at Startup Shell call Build-a-thon. I was also very busy and sick during this week so during the project I had to change the scope a few times.
+
+When building a ML framework from scratch there are a few levels of abstraction possible:
+1. Low level opimized tensor operations like programing cuda kernals: I'm still learning systems but this would be a cool future project
+2. Use an existing linear algebra library like Numpy and build a ML library ontop of it (sounds familiar)
+3. Use an existing linear algebra library that had autograd and a few other features tailored to ML like JAX and build a neural network library ontop of it: there's a lot of cool libraries that I want to contribute to here
+
+### What's next?
+
+1. Finish implementing a few things like automatic differentiation and layers
+2. My next project is going to be building a reinforcement learning environment for training LLMs on generating mathematical proofs in Lean!
+
+## To run as notebook
+```bash
+uv run python -m ipykernel install --user --name cortex --display-name "Python (cortex)"
+```
+```bash
+uv run jupyter notebook
+```
 
 ## Some other cool projects
 - https://github.com/MarioSieg/magnetron

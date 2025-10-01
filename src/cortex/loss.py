@@ -13,10 +13,15 @@ class CrossEntropyLoss(Loss):
     def forward(self, y_pred, y_true):
         self.y_pred = y_pred
         self.y_true = y_true
-        return -np.mean(np.sum(y_true * np.log(y_pred + 1e-9), axis=0))
+        # clip predictions to avoid log(0)
+        y_pred_clipped = np.clip(y_pred, 1e-9, 1 - 1e-9)
+        return -np.mean(np.sum(y_true * np.log(y_pred_clipped), axis=1))
 
     def backward(self):
-        return - (self.y_true / (self.y_pred + 1e-9)) / self.y_true.shape[1]
+        grad = self.y_pred - self.y_true
+        # Average gradient over the batch
+        grad = grad / self.y_true.shape[0]
+        return grad
     
 class MSELoss(Loss):
     def forward(self, y_pred, y_true):
