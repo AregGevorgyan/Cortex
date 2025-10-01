@@ -19,7 +19,6 @@ class CrossEntropyLoss(Loss):
 
     def backward(self):
         grad = self.y_pred - self.y_true
-        # Average gradient over the batch
         grad = grad / self.y_true.shape[0]
         return grad
     
