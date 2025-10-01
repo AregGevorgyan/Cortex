@@ -5,7 +5,7 @@ Let me know if you have any suggestions or if you found this useful.
 
 ## Cortex Explained
 
-I built this project during a 1 week informal hackathon at Startup Shell call Build-a-thon. I was also very busy and sick during this week so during the project I had to change the scope a few times.
+I built this project during a 1 week informal hackathon at Startup Shell call Build-a-thon. I was also very busy and sick during this week so during the project I had to change the scope a few times. My build won the "Scrappiest Build" award.
 
 It works by allowing for a `NeuralNetwork` object to be defined as a sequence of `Layer` objects. Each `Layer` object can be a a type of neural network layer like `Dense` or `Convolutional`, or a activation function like `ReLU`. Each `Layer` object has a forward method for calculating the output and a backward layer for the gradient (no autodiff yet). `NeuralNetwork` is also defined wiht a `Loss` object for the loss function and an `Optimizer` object for the optimization algorithm like `SGD` or `Adam`. 
 
