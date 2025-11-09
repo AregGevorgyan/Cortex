@@ -11,3 +11,11 @@ dependencies = [
     "numpy>=2.3.3",
     "tqdm>=4.67.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "torch>=2.0.0",
+]
+gpu = [
+    "cupy>=12.0.0",
+]

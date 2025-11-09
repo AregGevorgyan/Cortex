@@ -1,4 +1,4 @@
-import numpy as np
+from .backend import np
 
 __all__ = ["Loss", "CrossEntropyLoss", "MSELoss"]
 

@@ -1,5 +1,5 @@
-import numpy as np
 from tqdm import tqdm
+from .backend import np
 
 from .layers import *
 from .loss import *

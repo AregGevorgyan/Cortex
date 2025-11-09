@@ -1,0 +1,11 @@
+ipykernel>=6.30.1
+matplotlib>=3.10.6
+notebook>=7.4.7
+numpy>=2.3.3
+tqdm>=4.67.1
+
+[dev]
+torch>=2.0.0
+
+[gpu]
+cupy>=12.0.0

@@ -1,11 +1,35 @@
-import numpy as np
+from contextlib import contextmanager
+from .backend import np
+
+# Global flag for no_grad context
+_grad_enabled = True
+
+@contextmanager
+def no_grad():
+    """Context manager to disable gradient tracking.
+
+    Usage:
+        with no_grad():
+            output = model(inputs)  # No gradients computed
+    """
+    global _grad_enabled
+    prev_state = _grad_enabled
+    _grad_enabled = False
+    try:
+        yield
+    finally:
+        _grad_enabled = prev_state
 
 class Tensor:
     def __init__(self, data, requires_grad=True, _children=(), _op=''):
         self.data = np.array(data, dtype=np.float32)
         # If this tensor is the result of an operation, infer requires_grad from parents
-        if _children:
+        # Only infer if requires_grad is True (default); respect explicit False
+        if _children and requires_grad:
             requires_grad = any(getattr(c, 'requires_grad', False) for c in _children)
+        # Respect no_grad context
+        if not _grad_enabled:
+            requires_grad = False
         self.requires_grad = requires_grad
         self.grad = None
         
@@ -14,16 +38,16 @@ class Tensor:
         self._op = _op
         self._backward = lambda: None
     
-    def backward(self, grad=None):
+    def backward(self, grad=None, retain_graph=False):
         if not self.requires_grad:
             return
-        
+
         if grad is None:
             if self.data.size == 1:
                 grad = np.ones_like(self.data)
             else:
                 raise RuntimeError("grad must be specified for non-scalar tensors")
-        
+
         # Initialize gradient (don't add here, let _backward functions handle it)
         if self.grad is None:
             self.grad = grad
@@ -33,18 +57,24 @@ class Tensor:
         # Topological sort and backprop
         topo = []
         visited = set()
-        
+
         def build_topo(v):
             if v not in visited:
                 visited.add(v)
                 for child in v._prev:
                     build_topo(child)
                 topo.append(v)
-        
+
         build_topo(self)
-    
+
         for node in reversed(topo):
             node._backward()
+
+        # Clear graph to prevent memory leaks (unless retain_graph=True)
+        if not retain_graph:
+            for node in topo:
+                node._prev = set()
+                node._backward = lambda: None
 
     def zero_grad(self):
         self.grad = None
@@ -151,19 +181,29 @@ class Tensor:
     def __matmul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other, requires_grad=False)
         out = Tensor(self.data @ other.data, _children=(self, other), _op='@')
-        
+
         def _backward():
             if self.requires_grad:
-                grad = out.grad @ other.data.T
+                # Handle batched matmul: transpose only the last two dimensions
+                if other.data.ndim >= 2:
+                    other_T = np.swapaxes(other.data, -2, -1)
+                    grad = out.grad @ other_T
+                else:
+                    grad = out.grad @ other.data.T
                 if self.grad is None:
                     self.grad = np.zeros_like(self.data)
                 self.grad = self.grad + grad
             if other.requires_grad:
-                grad = self.data.T @ out.grad
+                # Handle batched matmul: transpose only the last two dimensions
+                if self.data.ndim >= 2:
+                    self_T = np.swapaxes(self.data, -2, -1)
+                    grad = self_T @ out.grad
+                else:
+                    grad = self.data.T @ out.grad
                 if other.grad is None:
                     other.grad = np.zeros_like(other.data)
                 other.grad = other.grad + grad
-        
+
         out._backward = _backward
         return out
 
@@ -326,12 +366,30 @@ class Tensor:
         out._backward = _backward
         return out
     
-    def mean(self):
-        out = Tensor(np.mean(self.data), _children=(self,), _op='mean')
+    def mean(self, axis=None, keepdims=False):
+        out = Tensor(np.mean(self.data, axis=axis, keepdims=keepdims), _children=(self,), _op='mean')
 
         def _backward():
             if self.requires_grad:
-                grad = out.grad * np.ones_like(self.data) / self.data.size
+                if axis is None:
+                    # Global mean: distribute gradient equally to all elements
+                    grad = out.grad * np.ones_like(self.data) / self.data.size
+                else:
+                    # Mean along specific axes: expand gradient back to original shape
+                    if not keepdims:
+                        if isinstance(axis, int):
+                            grad_expanded = np.expand_dims(out.grad, axis)
+                        else:
+                            grad_expanded = out.grad
+                            for ax in sorted(axis):
+                                grad_expanded = np.expand_dims(grad_expanded, ax)
+                    else:
+                        grad_expanded = out.grad
+
+                    # Divide by the number of elements averaged over
+                    n = np.prod([self.data.shape[i] for i in (axis if isinstance(axis, tuple) else (axis,))])
+                    grad = np.broadcast_to(grad_expanded, self.data.shape).copy() / n
+
                 if self.grad is None:
                     self.grad = np.zeros_like(self.data)
                 self.grad = self.grad + grad
@@ -523,13 +581,18 @@ class Tensor:
     def abs(self):
         """Absolute value"""
         out = Tensor(np.abs(self.data), _children=(self,), _op='abs')
-        
+
         def _backward():
             if self.requires_grad:
                 grad = out.grad * np.sign(self.data)
                 if self.grad is None:
                     self.grad = np.zeros_like(self.data)
                 self.grad = self.grad + grad
-        
+
         out._backward = _backward
         return out
+
+    def detach(self):
+        """Return a new tensor detached from the computation graph.
+        The returned tensor will not track gradients."""
+        return Tensor(self.data.copy(), requires_grad=False)
