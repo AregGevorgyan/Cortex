@@ -15,15 +15,6 @@ When building a ML framework from scratch there are a few levels of abstraction 
 This project spesifically focuses on level 2.
 It works by allowing for a `NeuralNetwork` object to be defined as a sequence of `Layer` objects. Each `Layer` object can be a a type of neural network layer like `Dense` or `Convolutional`, or a activation function like `ReLU`. Each `Layer` object has a forward method for calculating the output and a backward layer for the gradient (no autodiff yet). `NeuralNetwork` is also defined wiht a `Loss` object for the loss function and an `Optimizer` object for the optimization algorithm like `SGD` or `Adam`. 
 
-### What's next?
-
-1. Finish autograd and tensor wrapper class implementation, I hope to integrate Cupy to allow for gpu training
-2. My next project is going to be building a reinforcement learning environment for training LLMs on generating mathematical proofs in Lean!
-
-### Timeline
-
-This will be done by Thanksgiving
-
 ## To run as notebook
 ```bash
 uv run python -m ipykernel install --user --name cortex --display-name "Python (cortex)"

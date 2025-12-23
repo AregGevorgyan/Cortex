@@ -6,12 +6,6 @@ _grad_enabled = True
 
 @contextmanager
 def no_grad():
-    """Context manager to disable gradient tracking.
-
-    Usage:
-        with no_grad():
-            output = model(inputs)  # No gradients computed
-    """
     global _grad_enabled
     prev_state = _grad_enabled
     _grad_enabled = False
@@ -48,7 +42,7 @@ class Tensor:
             else:
                 raise RuntimeError("grad must be specified for non-scalar tensors")
 
-        # Initialize gradient (don't add here, let _backward functions handle it)
+        # Initialize gradient for _backward to add it
         if self.grad is None:
             self.grad = grad
         else:
@@ -257,7 +251,6 @@ class Tensor:
                     grad = out.grad * np.ones_like(self.data)
                 else:
                     # Expand gradient back to original shape
-                    grad_shape = list(self.data.shape)
                     if not keepdims:
                         if isinstance(axis, int):
                             grad_expanded = np.expand_dims(out.grad, axis)
