@@ -42,6 +42,7 @@ class NeuralNetwork:
             self.optimizer.step(params_flat, grads_flat)
             pbar.set_postfix({"loss": float(loss)})
 
+# TODO: update optimizer for new class
 class Optimizer:
     def __init__(self, learning_rate=0.01, optimizer="SGD", beta1=0.9, beta2=0.999, epsilon=1e-8, rho=0.9):
         self.learning_rate = learning_rate
