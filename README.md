@@ -6,6 +6,8 @@ Deep learning framework from scratch in Python. It includes
 
 Let me know if you have any suggestions or if you found this useful.
 
+This project won an award at the Startup Shell Hackathon in fall 2025!
+
 # Warning: This is a work in progress, first relese coming soon
 
 # Todo

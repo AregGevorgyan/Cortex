@@ -2,5 +2,4 @@ uv.lock
 .venv/
 __pycache__/
 .ipynb_checkpoints/
-tests/
 temp/

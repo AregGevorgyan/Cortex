@@ -32,7 +32,7 @@ class Module:
             module.eval()
 
 ###########################################################################
-# Layers
+# Nural Layers
 ###########################################################################
 
 class Linear(Module):
@@ -41,6 +41,7 @@ class Linear(Module):
         super().__init__()
 
         # Xavier initialization
+        # https://codesignal.com/learn/courses/advanced-neural-tuning/lessons/weight-initialization-with-xavier-uniform-in-pytorch
         limit = Tensor.sqrt(6 / (in_features + out_features))
         self._parameters['weight'] = Tensor(
             Tensor.random.uniform(-limit, limit, (in_features, out_features)),
@@ -80,8 +81,21 @@ class Sequential(Module):
 
 class ReLU(Module):
     """ReLU activation function"""
-    def __init__(self):
-        super().__init__()
-
     def forward(self, x):
         return Tensor.maximum(x, Tensor.zeros_like(x))
+    
+class Sigmoid(Module):
+    """Sigmoid activation function"""
+    def forward(self, x):
+        return 1 / (1 + Tensor.exp(-x))
+
+class Tanh(Module):
+    """Tanh activation function"""
+    def forward(self, x):
+        return Tensor.tanh(x)
+    
+class Softmax(Module):
+    """Softmax activation function"""
+    def forward(self, x):
+        exp_values = Tensor.exp(x - Tensor.max(x, axis=1, keepdims=True))
+        return exp_values / Tensor.sum(exp_values, axis=1, keepdims=True)
